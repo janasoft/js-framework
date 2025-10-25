@@ -6,7 +6,7 @@ unit entity_cl;
 interface
 
 uses
-  Classes, SysUtils, fgl,
+  Classes, SysUtils, fgl, sqldb,
   {$IFDEF debug} LazLoggerBase, {$ELSE}  LazLoggerDummy,{$ENDIF}
   fw_typedef, entity_serializers;
 
@@ -32,11 +32,18 @@ private
   function SetFieldBoolean(var AField: Boolean; const AValue: Boolean): Boolean;
 protected
   procedure DoValidate; virtual;
-  { Hooks abstractos para serialización - Principio OCP (Open/Closed)
+  
+  { Hooks abstractos para serialización JSON - Principio OCP (Open/Closed)
     Las clases derivadas extienden la serialización sin modificar TEntity
     No dependen directamente de JSON - Principio DIP (Dependency Inversion) }
   procedure DoSerializeFields(ASerializer: TEntitySerializer); virtual;
   procedure DoDeserializeFields(ADeserializer: TEntityDeserializer); virtual;
+  
+  { Hooks abstractos para mapeo directo DB ↔ Entity
+    Camino eficiente sin overhead JSON para operaciones de base de datos
+    Las entidades definen CÓMO mapear sus campos específicos }
+  procedure DoLoadFromQuery(AQuery: TSQLQuery); virtual;
+  procedure DoSaveToParams(AQuery: TSQLQuery); virtual;
 public
   constructor Create; virtual;
   destructor Destroy; override;
@@ -60,6 +67,12 @@ public
     Compatible hacia atrás: no afecta acceso a BD }
   function ToJSONString: string;
   procedure FromJSONString(const AStr: string);
+  
+  { Mapeo directo DB ↔ Entity - Camino eficiente
+    Carga/guarda desde/hacia consultas SQL sin overhead JSON
+    Usa BeginLoad/EndLoad internamente para evitar side effects }
+  procedure LoadFromQuery(AQuery: TSQLQuery);
+  procedure SaveToQuery(AQuery: TSQLQuery);
 
   property ID: integer read fID write setID;
   property Caption: string read fCaption write setCaption;
@@ -323,6 +336,40 @@ begin
     EndLoad;
   end;
   DebugLnExit();
+end;
+
+{--- Mapeo directo DB ↔ Entity --------------------------------------------------------------------}
+
+procedure TEntity.LoadFromQuery(AQuery: TSQLQuery);
+begin
+  DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
+  BeginLoad;
+  try
+    DoLoadFromQuery(AQuery);
+    fState := esUnchanged;  // La entidad viene de la BD, está sincronizada
+  finally
+    EndLoad;
+  end;
+  DebugLnExit();
+end;
+
+procedure TEntity.SaveToQuery(AQuery: TSQLQuery);
+begin
+  DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
+  DoSaveToParams(AQuery);
+  DebugLnExit();
+end;
+
+procedure TEntity.DoLoadFromQuery(AQuery: TSQLQuery);
+begin
+  // Implementación por defecto vacía
+  // Las clases derivadas deben implementar este método
+end;
+
+procedure TEntity.DoSaveToParams(AQuery: TSQLQuery);
+begin
+  // Implementación por defecto vacía
+  // Las clases derivadas deben implementar este método
 end;
 
 end.
