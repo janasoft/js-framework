@@ -29,19 +29,22 @@ Este proyecto está en fase de desarrollo activo. La API puede cambiar sin previ
 - [x] Helpers de campo (SetFieldString, SetFieldInteger, etc.)
 - [x] Serialización JSON desacoplada (principio DIP)
 - [x] TEntitySerializer/TEntityDeserializer (abstracción reutilizable)
+- [x] **Mapeo directo DB ↔ Entity** (LoadFromQuery/SaveToQuery)
+- [x] Dual-path persistence (directo + JSON)
 - [x] Sistema de tests unitarios con FPCUnit
 
 ### 🔨 En desarrollo
 
-- [ ] Mapeo directo DB ↔ Entity (sin overhead JSON)
 - [ ] Sistema de repositorios con soporte multi-BD
 - [ ] Factory pattern para diferentes motores de BD
 - [ ] Sistema de migraciones
 - [ ] Documentación completa
+- [ ] Tests con datasets reales
 
 ### 📋 Roadmap
 
-- [ ] v0.2.0: Mapeo directo DB ↔ Entity
+- [x] v0.1.0: Sistema base de entidades + serialización JSON
+- [ ] v0.2.0: Mapeo directo completamente testeado
 - [ ] v0.3.0: Soporte SQLite completo
 - [ ] v0.4.0: Soporte Firebird
 - [ ] v0.5.0: Soporte PostgreSQL
@@ -91,10 +94,20 @@ El framework está diseñado siguiendo los **principios SOLID**:
 - `TEntityDeserializer`: Lectura type-safe de JSON
 - Desacoplados de las entidades (DIP)
 
+**Dual-Path Persistence**
+- **Camino directo**: DB ↔ Entity (LoadFromQuery/SaveToQuery)
+  - Mayor rendimiento para CRUD intensivo
+  - Acceso directo a campos SQL
+  - Ideal para aplicaciones desktop
+- **Camino JSON**: Entity ↔ JSON ↔ API/Storage
+  - Serialización para web/REST APIs
+  - Almacenamiento en formato portable
+  - Compatibilidad con servicios externos
+
 **DataSources**
 - Mapeo entre DB y entidades
 - Lookup values y relaciones
-- Doble vía: mapeo directo + JSON
+- Implementan ambos caminos (directo + JSON)
 
 ## 🚀 Ejemplo de Uso
 

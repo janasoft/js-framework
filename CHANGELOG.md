@@ -7,12 +7,20 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-### Planificado
-- Mapeo directo DB ↔ Entity (sin overhead JSON)
-- Sistema de repositorios base
-- Soporte para SQLite
+### En Desarrollo
+- Sistema de repositorios con factory pattern
+- Soporte completo para SQLite
 - Soporte para Firebird
 - Soporte para PostgreSQL
+- Tests con datasets reales (actualmente usa placeholders)
+
+### Añadido (pendiente release)
+- Mapeo directo DB ↔ Entity mediante `LoadFromQuery`/`SaveToQuery`
+- Hooks virtuales `DoLoadFromQuery`/`DoSaveToParams` para clases derivadas
+- Dual-path persistence: camino directo (performance) + JSON (portabilidad)
+- Test unitario `test_entity_dbmapping.pas` (requiere dataset mock)
+- Implementación de mapeo directo en `TCiudad` como ejemplo
+- `TdbCiudades` refactorizado para usar nuevo mapeo
 
 ## [0.1.0-alpha] - 2025-10-25
 
