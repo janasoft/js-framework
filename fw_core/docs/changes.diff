@@ -1,0 +1,328 @@
+diff --git a/DataSources/ciudades_ds.pas b/DataSources/ciudades_ds.pas
+index 520b229..50acd03 100644
+--- a/DataSources/ciudades_ds.pas
++++ b/DataSources/ciudades_ds.pas
+@@ -6,7 +6,7 @@ unit ciudades_ds;
+ interface
+ 
+ uses
+-  Classes, SysUtils, dialogs,
++  Classes, SysUtils, dialogs, fpjson,
+   {$IFDEF debug} LazLoggerBase, {$ELSE}  LazLoggerDummy,{$ENDIF}
+   app_config, baseds_cl;
+ 
+@@ -30,6 +30,9 @@ type
+     procedure SetEs_Capital(AValue: boolean);
+     procedure SetPob_Tipo_ID(AValue: integer);
+     procedure SetPob_Tipo_LU(AValue: string);
++  protected
++    procedure DoSerialize(AObj: TJSONObject); override;
++    procedure DoDeserialize(AObj: TJSONObject); override;
+   published
+     property ID_Ciudad: integer read FID_Ciudad write SetID_Ciudad;
+     property Ciudad: string read FCiudad write SetCiudad;
+@@ -140,6 +143,31 @@ end;
+ 
+ {--------------------Fin métodos redefinidos-----------------------------------}
+ 
++procedure TCiudad.DoSerialize(AObj: TJSONObject);
++begin
++  inherited DoSerialize(AObj);
++  AObj.Add('ID_Ciudad', FID_Ciudad);
++  AObj.Add('Ciudad', FCiudad);
++  AObj.Add('Pais_ID', FPais_ID);
++  AObj.Add('Es_Capital', FEs_Capital);
++  AObj.Add('Pob_Tipo_ID', FPob_Tipo_ID);
++end;
++
++procedure TCiudad.DoDeserialize(AObj: TJSONObject);
++begin
++  inherited DoDeserialize(AObj);
++  if AObj.Find('ID_Ciudad') <> nil then
++    FID_Ciudad := AObj.Integers['ID_Ciudad'];
++  if AObj.Find('Ciudad') <> nil then
++    FCiudad := AObj.Strings['Ciudad'];
++  if AObj.Find('Pais_ID') <> nil then
++    FPais_ID := AObj.Integers['Pais_ID'];
++  if AObj.Find('Es_Capital') <> nil then
++    FEs_Capital := AObj.Booleans['Es_Capital'];
++  if AObj.Find('Pob_Tipo_ID') <> nil then
++    FPob_Tipo_ID := AObj.Integers['Pob_Tipo_ID'];
++end;
++
+ {-------------------------------------------------------------------------------
+  Métodos get/Set
+ -------------------------------------------------------------------------------}
+diff --git a/fw_core/resources/fw_typedef.pas b/fw_core/resources/fw_typedef.pas
+index 62e984f..45feef0 100644
+--- a/fw_core/resources/fw_typedef.pas
++++ b/fw_core/resources/fw_typedef.pas
+@@ -6,7 +6,7 @@ unit fw_typedef;
+ interface
+ 
+ uses
+-  Classes, SysUtils, fgl, DB;
++  Classes, SysUtils, fgl, DB, fpjson, jsonparser;
+ 
+ const
+ 
+@@ -118,16 +118,74 @@ type
+   end;
+   PSearchResult = ^TSearchResult;
+ 
++  TEntityState = (
++    esUnchanged,    // Estado inicial/sin cambios
++    esNew,          // Entidad nueva
++    esModified,     // Entidad modificada
++    esDeleted       // Entidad marcada para eliminar
++  );
++
++  TValidationSeverity = (
++    vsInfo,         // Información
++    vsWarning,      // Advertencia
++    vsError         // Error que impide guardar
++  );
++
++  TValidationMessage = class
++  public
++    PropertyName: string;
++    Message: string;
++    Severity: TValidationSeverity;
++    constructor Create(const APropertyName, AMessage: string; ASeverity: TValidationSeverity);
++  end;
++
++  TValidationMessages = specialize TFPGObjectList<TValidationMessage>;
++
++  TEntityMetadata = record
++    CreatedAt: TDateTime;
++    ModifiedAt: TDateTime;
++    CreatedBy: string;
++    ModifiedBy: string;
++    Version: Integer;
++  end;
++
+   // TEntity es la clase de la que derivan todas las Entidades
+   TEntity = class
+   private
+     fCaption: string;
+     fID: integer;
++    fState: TEntityState;
++    fMetadata: TEntityMetadata;
++    fValidationMessages: TValidationMessages;
++    
+     procedure setCaption(aValue: string);
+     procedure setID(aValue: integer);
++    procedure setState(aValue: TEntityState);
++    procedure UpdateModifiedMetadata;
++  protected
++    procedure DoValidate; virtual;
++    procedure DoSerialize(AObj: TJSONObject); virtual;
++    procedure DoDeserialize(AObj: TJSONObject); virtual;
+   public
++    constructor Create; virtual;
++    destructor Destroy; override;
++    
++    function Validate: Boolean; virtual;
++    function IsValid: Boolean;
++    procedure MarkAsModified;
++    procedure MarkAsDeleted;
++    
++    // Serialización JSON (compatible hacia atrás: opcional, no cambia acceso a BD)
++    function ToJSON: TJSONObject; virtual;
++    function ToJSONString: string;
++    procedure FromJSON(AObj: TJSONObject); virtual;
++    procedure FromJSONString(const AStr: string);
++    
+     property ID: integer read fID write setID;
+     property Caption: string read fCaption write setCaption;
++    property State: TEntityState read fState write setState;
++    property Metadata: TEntityMetadata read fMetadata;
++    property ValidationMessages: TValidationMessages read fValidationMessages;
+   end;
+ 
+   TEntityList = specialize TFPGObjectlist<TEntity>;
+@@ -157,6 +215,15 @@ type
+ 
+ implementation
+ 
++{ TValidationMessage }
++
++constructor TValidationMessage.Create(const APropertyName, AMessage: string; ASeverity: TValidationSeverity);
++begin
++  PropertyName := APropertyName;
++  Message := AMessage;
++  Severity := ASeverity;
++end;
++
+ { TEntity }
+ 
+ procedure TEntity.setCaption(aValue: string);
+@@ -167,10 +234,166 @@ end;
+ 
+ procedure TEntity.setID(aValue: integer);
+ begin
+-  if fID= aValue then Exit;
+-  fID:= aValue;
++  if fID = aValue then Exit;
++  fID := aValue;
++  MarkAsModified;
++end;
++
++constructor TEntity.Create;
++begin
++  inherited Create;
++  fState := esNew;
++  fValidationMessages := TValidationMessages.Create;
++  
++  // Inicializar metadata
++  fMetadata.CreatedAt := Now;
++  fMetadata.ModifiedAt := Now;
++  fMetadata.Version := 1;
++end;
++
++destructor TEntity.Destroy;
++begin
++  FreeAndNil(fValidationMessages);
++  inherited Destroy;
++end;
++
++procedure TEntity.setState(aValue: TEntityState);
++begin
++  if fState = aValue then Exit;
++  fState := aValue;
++  if fState in [esModified, esNew] then
++    UpdateModifiedMetadata;
++end;
++
++procedure TEntity.UpdateModifiedMetadata;
++begin
++  fMetadata.ModifiedAt := Now;
++  Inc(fMetadata.Version);
++end;
++
++procedure TEntity.MarkAsModified;
++begin
++  if fState = esUnchanged then
++    State := esModified;
++end;
++
++procedure TEntity.MarkAsDeleted;
++begin
++  State := esDeleted;
+ end;
+ 
++function TEntity.Validate: Boolean;
++begin
++  fValidationMessages.Clear;
++  DoValidate;
++  Result := IsValid;
++end;
++
++function TEntity.IsValid: Boolean;
++var
++  i: Integer;
++begin
++  Result := True;
++  for i := 0 to fValidationMessages.Count - 1 do
++    if fValidationMessages[i].Severity = vsError then
++    begin
++      Result := False;
++      Break;
++    end;
++end;
++
++procedure TEntity.DoValidate;
++begin
++  // Las clases descendientes implementarán sus propias validaciones
++end;
++
++procedure TEntity.DoSerialize(AObj: TJSONObject);
++begin
++  // Hook para que las entidades hijas añadan sus campos
++  // Por defecto no añade nada
++end;
++
++procedure TEntity.DoDeserialize(AObj: TJSONObject);
++begin
++  // Hook para que las entidades hijas lean sus campos
++  // Por defecto no hace nada
++end;
++
++function TEntity.ToJSON: TJSONObject;
++begin
++  Result := TJSONObject.Create;
++  Result.Add('id', fID);
++  Result.Add('caption', fCaption);
++  // Meta object for compatibility and future fields
++  Result.Add('meta', TJSONObject.Create(['state', Ord(fState),
++                                        'created_at', DateTimeToStr(fMetadata.CreatedAt),
++                                        'modified_at', DateTimeToStr(fMetadata.ModifiedAt),
++                                        'version', fMetadata.Version]));
++  // Allow descendants to add their fields
++  DoSerialize(Result);
++end;
++
++function TEntity.ToJSONString: string;
++var
++  obj: TJSONObject;
++begin
++  obj := ToJSON;
++  try
++    Result := obj.AsJSON;
++  finally
++    obj.Free;
++  end;
++end;
++
++procedure TEntity.FromJSON(AObj: TJSONObject);
++var
++  metaObj: TJSONObject;
++begin
++  if AObj.Find('id') = nil then
++    fID := 0
++  else
++    fID := AObj.Integers['id'];
++
++  if AObj.Find('caption') <> nil then
++    fCaption := AObj.Strings['caption'];
++
++  if AObj.Find('meta') <> nil then
++  begin
++    metaObj := AObj.Objects['meta'];
++    if Assigned(metaObj) then
++    begin
++      if metaObj.Find('state') <> nil then
++        fState := TEntityState(metaObj.Integers['state']);
++      if metaObj.Find('created_at') <> nil then
++        fMetadata.CreatedAt := StrToDateTimeDef(metaObj.Strings['created_at'], Now);
++      if metaObj.Find('modified_at') <> nil then
++        fMetadata.ModifiedAt := StrToDateTimeDef(metaObj.Strings['modified_at'], Now);
++      if metaObj.Find('version') <> nil then
++        fMetadata.Version := metaObj.Integers['version'];
++    end;
++  end;
++
++  // Allow descendants to read their fields; ignore unknown fields for compatibility
++  DoDeserialize(AObj);
++end;
++
++procedure TEntity.FromJSONString(const AStr: string);
++var
++  data: TJSONData;
++  obj: TJSONObject;
++begin
++  if AStr = '' then Exit;
++  data := GetJSON(AStr);
++  try
++    if data.JSONType = jtObject then
++    begin
++      obj := TJSONObject(data);
++      FromJSON(obj);
++    end;
++  finally
++    data.Free;
++  end;
++end;
+ 
+ end.
+ 

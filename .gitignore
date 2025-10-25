@@ -1,0 +1,44 @@
+
+# Aplicación de prueba (repositorio independiente)
+fw_test/
+
+# Proyecto de unit testing
+fw_unittests*.*
+
+
+# Ignorar la carpeta lib
+lib/
+
+# Ignorar archivos de sesión de Lazarus
+*.lps
+*.dbg
+*.lps
+*.res
+*.lpg
+heap.trc
+
+# Ignorar archivos temporales y de sistema
+*.bak
+*.~*
+*.log
+
+# Ignorar archivos de compilación
+*.o
+*.ppu
+*.compiled
+*.exe
+*.dll
+*.so
+*.dcu
+*.pdb
+
+# Archivos SQLite
+sqlite3.*
+
+# Ignorar carpetas de backup
+**/backup/
+**/backup/*
+
+# Ignorar carpetas ocultas del sistema
+.DS_Store
+Thumbs.db

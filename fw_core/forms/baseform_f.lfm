@@ -1,0 +1,15 @@
+object Baseform: TBaseform
+  Left = 628
+  Height = 233
+  Top = 514
+  Width = 393
+  Caption = 'frmBase'
+  Font.CharSet = ANSI_CHARSET
+  Font.Height = -13
+  Font.Pitch = fpVariable
+  Font.Quality = fqDraft
+  OnClose = FormClose
+  Position = poDesktopCenter
+  ShowHint = True
+  LCLVersion = '3.0.0.3'
+end

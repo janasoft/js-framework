@@ -1,0 +1,68 @@
+inherited BaseBrowserform: TBaseBrowserform
+  Left = 154
+  Height = 234
+  Top = 587
+  Width = 447
+  ClientHeight = 234
+  ClientWidth = 447
+  object pnlFrBrowser: TPanel[0]
+    Left = 0
+    Height = 234
+    Top = 0
+    Width = 447
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 234
+    ClientWidth = 447
+    TabOrder = 0
+    inline frBrowser: TFrameBrowser
+      Height = 234
+      Width = 447
+      Align = alClient
+      ClientHeight = 234
+      ClientWidth = 447
+      inherited pnlButtons: TPanel
+        Width = 447
+        ClientWidth = 447
+        inherited tlbBrowser: TToolBar
+          Width = 232
+        end
+        inherited pnlSearch: TPanel
+          Left = 232
+        end
+      end
+      inherited pnlGrid: TPanel
+        Height = 202
+        Width = 447
+        ClientHeight = 202
+        ClientWidth = 447
+        inherited grdBrowser: TStringGrid
+          Height = 177
+          Width = 445
+          ColWidths = (
+            89
+            89
+            89
+            89
+            89
+          )
+        end
+        inherited stbTabla: TStatusBar
+          Top = 178
+          Width = 445
+        end
+      end
+      inherited imlBrowser: TImageList
+        Left = 40
+        Top = 64
+      end
+      inherited aclBrowser: TActionList
+        Left = 120
+      end
+      inherited menTblSearch: TPopupMenu
+        Left = 320
+        Top = 72
+      end
+    end
+  end
+end
