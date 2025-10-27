@@ -1,6 +1,9 @@
 # Contribuir a JS-Framework
 
+NOTA: Gran parte de lo que sigue lo he copiado de otro proyecto. Yo creo que no sería capaz de escribir tantas cosas :-)
+
 ¡Gracias por tu interés en contribuir! Este documento proporciona guías para contribuir al proyecto.
+
 
 ## 🎯 Filosofía del Proyecto
 
@@ -114,46 +117,17 @@ manejar campos de tipo TDateTime.
 ### Código Pascal
 
 **Nomenclatura:**
-```pascal
-// Clases: TPascalCase
-type
-  TMyEntity = class(TEntity)
-  
-// Interfaces: IPascalCase
-type
-  IRepository = interface
-  
-// Variables privadas: FPascalCase
-private
-  FMyField: string;
-  
-// Parámetros: APascalCase
-procedure DoSomething(AValue: string);
+Como norma general, utilizo la guía de estilo publicada en el documento "Delphi 4 Developer's Guide Coding Standards" con dos ligeras diferencias que obedecen únicamente a razones de gusto personal:
 
-// Variables locales: camelCase o lowercase
-var
-  myVar: Integer;
-  i: Integer;
-```
+- El nombre de los campos se antecede de 'f' (minúscula) en lugar de 'F': fState 
+- El nombre de los parámetros se antecede de una 'a' (minúscula) en lugar de 'A': procedure LoadFromQuery(aQuery: TSQLQuery); 
 
-**Principios:**
-```pascal
-// SRP - Una clase, una responsabilidad
-type
-  TEntitySerializer = class  // Solo serializa
-  TEntityValidator = class    // Solo valida
-  
-// OCP - Extensible, no modificable
-protected
-  procedure DoSerializeFields(ASerializer: TEntitySerializer); virtual;
-  
-// DIP - Depender de abstracciones
-uses
-  entity_serializers;  // Abstracción
-  // NO: fpjson;       // Implementación concreta
-```
+Lo hago así simplemente porque creo que el resultado es más legible. Para ser congruente, también debería aplicarlo a la T de tipos pero no lo hago por otras razones que no merece la pena explicar 😊
 
 **Documentación:**
+En la medida de lo posible, dentro del código, facilito la documentación de uso necesaria al inicio de cada clase, método, procedimiento o función. En todo caso, esta documentación es imprescindible adjuntarla cuando se trate de procesos de cierta complejidad. 
+En este ejemplo muestro un posible modelo:
+
 ```pascal
 { TEntitySerializer - Helper para serialización
   
@@ -163,7 +137,7 @@ uses
   
   Principios SOLID:
   - SRP: Solo se encarga de serializar
-  - DIP: Entidades dependen de este helper, no de fpjson
+  - DIP: Las entidades dependen de este helper, no de fpjson
   
   Uso:
     serializer := TEntitySerializer.Create;
@@ -178,26 +152,13 @@ uses
 
 ### Tests
 
-**Estructura:**
-```pascal
-// Una aserción por test
-procedure TMyTests.TestFieldSerialization;
-begin
-  FEntity.Name := 'Test';
-  AssertEquals('Name debe serializarse', 'Test', 
-    DeserializeField(Serialize(FEntity), 'name'));
-end;
+Salvo que existan una razón muy clara que lo justifique, los tests deberán cumplir estas dos normas básicas:
+- Una aserción por test
+- Cada test debe ser absolutamente independiente
 
-// Setup/TearDown para preparar contexto
-procedure TMyTestCase.SetUp;
-begin
-  inherited;
-  FEntity := TMyEntity.Create;
-  FEntity.UpdateMetadata('TestUser');
-end;
-```
+Aun no he establecido una estrategia en cuanto a la organización de los tests. No tengo claro si agruparlos por clase o por funcionalidad. En cuanto la tenga definida la escribiré aquí, así como las normas de nomenclatura
+Em cualquier caso, lo que si se solicita es que los nombres asignados sean descriptivos:
 
-**Nombres descriptivos:**
 ```pascal
 // ✅ Bueno
 procedure TestVersionIncrementOnModification;
@@ -233,13 +194,6 @@ Persistence Layer (basedb_cl.pas)
 ├─ SQL y transacciones
 └─ Sin lógica de negocio
 ```
-
-### Decisiones de Diseño Clave
-
-1. **Version**: Se incrementa en repositorio, no en entidad
-2. **BeginLoad/EndLoad**: Suspende efectos secundarios durante carga
-3. **Serialización**: Opcional, no afecta persistencia tradicional
-4. **Metadata**: Actualización explícita vía métodos dedicados
 
 ## ✅ Checklist para PR
 

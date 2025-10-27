@@ -27,23 +27,23 @@ private
   procedure UpdateModifiedMetadata;
 
   function GetIsLoading: Boolean;
-  function SetFieldString(var AField: string; const AValue: string): Boolean;
-  function SetFieldInteger(var AField: Integer; const AValue: Integer): Boolean;
-  function SetFieldBoolean(var AField: Boolean; const AValue: Boolean): Boolean;
+  function SetFieldString(var aField: string; const aValue: string): Boolean;
+  function SetFieldInteger(var aField: Integer; const aValue: Integer): Boolean;
+  function SetFieldBoolean(var aField: Boolean; const aValue: Boolean): Boolean;
 protected
   procedure DoValidate; virtual;
   
   { Hooks abstractos para serialización JSON - Principio OCP (Open/Closed)
     Las clases derivadas extienden la serialización sin modificar TEntity
     No dependen directamente de JSON - Principio DIP (Dependency Inversion) }
-  procedure DoSerializeFields(ASerializer: TEntitySerializer); virtual;
-  procedure DoDeserializeFields(ADeserializer: TEntityDeserializer); virtual;
+  procedure DoSerializeFields(aSerializer: TEntitySerializer); virtual;
+  procedure DoDeserializeFields(aDeserializer: TEntityDeserializer); virtual;
   
   { Hooks abstractos para mapeo directo DB ↔ Entity
     Camino eficiente sin overhead JSON para operaciones de base de datos
     Las entidades definen CÓMO mapear sus campos específicos }
-  procedure DoLoadFromQuery(AQuery: TSQLQuery); virtual;
-  procedure DoSaveToParams(AQuery: TSQLQuery); virtual;
+  procedure DoLoadFromQuery(aQuery: TSQLQuery); virtual;
+  procedure DoSaveToParams(aQuery: TSQLQuery); virtual;
 public
   constructor Create; virtual;
   destructor Destroy; override;
@@ -59,20 +59,20 @@ public
   property IsLoading: Boolean read GetIsLoading;
 
   // Helpers para metadata
-  procedure UpdateMetadata(const ACreatedBy: string); overload;
-  procedure UpdateMetadata(const AModifiedBy: string; const AVersion: Integer); overload;
+  procedure UpdateMetadata(const aCreatedBy: string); overload;
+  procedure UpdateMetadata(const aModifiedBy: string; const aVersion: Integer); overload;
   
   { Serialización JSON - Opcional para web/API
     Usa helpers para abstraer JSON de la entidad (Principio DIP)
     Compatible hacia atrás: no afecta acceso a BD }
   function ToJSONString: string;
-  procedure FromJSONString(const AStr: string);
+  procedure FromJSONString(const aStr: string);
   
   { Mapeo directo DB ↔ Entity - Camino eficiente
     Carga/guarda desde/hacia consultas SQL sin overhead JSON
     Usa BeginLoad/EndLoad internamente para evitar side effects }
-  procedure LoadFromQuery(AQuery: TSQLQuery);
-  procedure SaveToQuery(AQuery: TSQLQuery);
+  procedure LoadFromQuery(aQuery: TSQLQuery);
+  procedure SaveToQuery(aQuery: TSQLQuery);
 
   property ID: integer read fID write setID;
   property Caption: string read fCaption write setCaption;
@@ -184,13 +184,13 @@ begin
   // Las clases descendientes implementarán sus propias validaciones
 end;
 
-procedure TEntity.DoSerializeFields(ASerializer: TEntitySerializer);
+procedure TEntity.DoSerializeFields(aSerializer: TEntitySerializer);
 begin
   // Hook para que las entidades hijas añadan sus campos específicos
   // Por defecto no añade nada - las clases derivadas sobrescriben este método
 end;
 
-procedure TEntity.DoDeserializeFields(ADeserializer: TEntityDeserializer);
+procedure TEntity.DoDeserializeFields(aDeserializer: TEntityDeserializer);
 begin
   // Hook para que las entidades hijas lean sus campos específicos
   // Por defecto no hace nada - las clases derivadas sobrescriben este método
@@ -221,15 +221,15 @@ begin
   DebugLnExit();
 end;
 
-procedure TEntity.FromJSONString(const AStr: string);
+procedure TEntity.FromJSONString(const aStr: string);
 var
   deserializer: TEntityDeserializer;
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
   
-  if AStr = '' then Exit;
+  if aStr = '' then Exit;
   
-  deserializer := TEntityDeserializer.CreateFromString(AStr);
+  deserializer := TEntityDeserializer.CreateFromString(aStr);
   try
     BeginLoad;
     try
@@ -274,49 +274,49 @@ begin
   DebugLnExit();
 end;
 
-function TEntity.SetFieldString(var AField: string; const AValue: string): Boolean;
+function TEntity.SetFieldString(var aField: string; const aValue: string): Boolean;
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
-  if AField = AValue then
+  if aField = aValue then
     Exit(False);
-  AField := AValue;
+  aField := aValue;
   if not IsLoading then
     MarkAsModified;
   Result := True;
   DebugLnExit();
 end;
 
-function TEntity.SetFieldInteger(var AField: Integer; const AValue: Integer): Boolean;
+function TEntity.SetFieldInteger(var aField: Integer; const aValue: Integer): Boolean;
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
-  if AField = AValue then
+  if aField = aValue then
     Exit(False);
-  AField := AValue;
+  aField := aValue;
   if not IsLoading then
     MarkAsModified;
   Result := True;
   DebugLnExit();
 end;
 
-function TEntity.SetFieldBoolean(var AField: Boolean; const AValue: Boolean): Boolean;
+function TEntity.SetFieldBoolean(var aField: Boolean; const aValue: Boolean): Boolean;
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
-  if AField = AValue then
+  if aField = aValue then
     Exit(False);
-  AField := AValue;
+  aField := aValue;
   if not IsLoading then
     MarkAsModified;
   Result := True;
   DebugLnExit();
 end;
 
-procedure TEntity.UpdateMetadata(const ACreatedBy: string);
+procedure TEntity.UpdateMetadata(const aCreatedBy: string);
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
   BeginLoad;
   try
     fMetadata.CreatedAt := Now;
-    fMetadata.CreatedBy := ACreatedBy;
+    fMetadata.CreatedBy := aCreatedBy;
     fMetadata.Version := 1;
   finally
     EndLoad;
@@ -324,14 +324,14 @@ begin
   DebugLnExit();
 end;
 
-procedure TEntity.UpdateMetadata(const AModifiedBy: string; const AVersion: Integer);
+procedure TEntity.UpdateMetadata(const aModifiedBy: string; const aVersion: Integer);
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
   BeginLoad;
   try
     fMetadata.ModifiedAt := Now;
-    fMetadata.ModifiedBy := AModifiedBy;
-    fMetadata.Version := AVersion;
+    fMetadata.ModifiedBy := aModifiedBy;
+    fMetadata.Version := aVersion;
   finally
     EndLoad;
   end;
@@ -340,12 +340,12 @@ end;
 
 {--- Mapeo directo DB ↔ Entity --------------------------------------------------------------------}
 
-procedure TEntity.LoadFromQuery(AQuery: TSQLQuery);
+procedure TEntity.LoadFromQuery(aQuery: TSQLQuery);
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
   BeginLoad;
   try
-    DoLoadFromQuery(AQuery);
+    DoLoadFromQuery(aQuery);
     fState := esUnchanged;  // La entidad viene de la BD, está sincronizada
   finally
     EndLoad;
@@ -353,20 +353,20 @@ begin
   DebugLnExit();
 end;
 
-procedure TEntity.SaveToQuery(AQuery: TSQLQuery);
+procedure TEntity.SaveToQuery(aQuery: TSQLQuery);
 begin
   DebugLnEnter('%s - %s', [ClassName, {$I %CURRENTROUTINE%}]);
-  DoSaveToParams(AQuery);
+  DoSaveToParams(aQuery);
   DebugLnExit();
 end;
 
-procedure TEntity.DoLoadFromQuery(AQuery: TSQLQuery);
+procedure TEntity.DoLoadFromQuery(aQuery: TSQLQuery);
 begin
   // Implementación por defecto vacía
   // Las clases derivadas deben implementar este método
 end;
 
-procedure TEntity.DoSaveToParams(AQuery: TSQLQuery);
+procedure TEntity.DoSaveToParams(aQuery: TSQLQuery);
 begin
   // Implementación por defecto vacía
   // Las clases derivadas deben implementar este método

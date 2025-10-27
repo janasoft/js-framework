@@ -42,3 +42,7 @@ sqlite3.*
 # Ignorar carpetas ocultas del sistema
 .DS_Store
 Thumbs.db
+
+# Documentación privada (no publicar)
+docs-private/
+docs/DECISIONS.md

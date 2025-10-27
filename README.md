@@ -2,60 +2,32 @@
 
 ⚠️ **Estado: Alpha / Desarrollo Activo**
 
-Framework moderno para desarrollo de aplicaciones desktop y web en Free Pascal/Lazarus, siguiendo principios SOLID y buenas prácticas de diseño orientado a objetos.
+La idea es desarrollar un framework para desarrollo de aplicaciones desktop y web en Free Pascal/Lazarus. El proyecto es la evolución de otro anterior.
+A medida que el proyecto se vaya estabilizando, pretendo publicar en un blog una descripción detallada tanto de su funcionamiento como de su arquitectura.
+En breve incluiré también una aplicación de ejemplo para mostrar las funcionalidades del mismo.
 
 **JS-Framework** es desarrollado por **Janasoft**.
 
 ## 🎯 Objetivo
-
-Proporcionar una capa de abstracción robusta y flexible para el manejo de entidades de negocio, soportando:
-- Aplicaciones de escritorio (Lazarus/LCL)
-- APIs web (vía serialización JSON)
-- Múltiples motores de base de datos (SQLite, Firebird, PostgreSQL)
+Mi objetivo básico es llevar a la práctica mis conocimientos siguiendo los principios SOLID y las buenas prácticas de diseño. Evidentemente, no creo que esté en mi maño diseñar el mejor y más potente framework, ni mucho menos competir con otros ya maduros y estables. Pero todo eso no quiere decir que no pretenda conseguir un framework perfectamente utilizable tanto en aplicaciones de escritorio (Lazarus/LCL) como en entornos web.
 
 ## 🚧 Estado Actual
-
-Este proyecto está en fase de desarrollo activo. La API puede cambiar sin previo aviso.
+Este framework es la evolución de otro mucho más limitado en cuanto a funcionalidad ya que solo estaba pensado para aplicaciones de escritorio. Aunque adolecía de algunos defectos, funcionaba correctamente, por lo que ya parto de una base sólida para el desarrollo actual.
+En todo caso este proyecto está en fase de desarrollo activo, por lo que la API puede cambiar sin previo aviso.
+A medida que se desarrollen las distintas funcionalidades se irán creando las correspondientes pruebas unitarias
 
 **Versión actual:** v0.1.0-alpha
 
-### ✅ Implementado
+### � En desarrollo
 
-- [x] Sistema base de entidades (`TEntity`)
-- [x] Control de estado (New, Unchanged, Modified, Deleted)
-- [x] Sistema de metadata (CreatedAt, ModifiedAt, CreatedBy, ModifiedBy, Version)
-- [x] Validación de entidades con mensajes tipificados
-- [x] BeginLoad/EndLoad para carga sin efectos secundarios
-- [x] Helpers de campo (SetFieldString, SetFieldInteger, etc.)
-- [x] Serialización JSON desacoplada (principio DIP)
-- [x] TEntitySerializer/TEntityDeserializer (abstracción reutilizable)
-- [x] **Mapeo directo DB ↔ Entity** (LoadFromQuery/SaveToQuery)
-- [x] Dual-path persistence (directo + JSON)
-- [x] Sistema de tests unitarios con FPCUnit
+Hay muchas funcionalidades pendientes de desarrollar por lo que, en este momento, no tiene demasiado sentido hacer una lista
 
-### 🔨 En desarrollo
-
-- [ ] Sistema de repositorios con soporte multi-BD
-- [ ] Factory pattern para diferentes motores de BD
-- [ ] Sistema de migraciones
-- [ ] Documentación completa
-- [ ] Tests con datasets reales
-
-### 📋 Roadmap
-
-- [x] v0.1.0: Sistema base de entidades + serialización JSON
-- [ ] v0.2.0: Mapeo directo completamente testeado
-- [ ] v0.3.0: Soporte SQLite completo
-- [ ] v0.4.0: Soporte Firebird
-- [ ] v0.5.0: Soporte PostgreSQL
-- [ ] v0.6.0: API REST helpers
-- [ ] v1.0.0: Primera versión estable
 
 ## 🏗️ Arquitectura
 
 ### Principios de Diseño
 
-El framework está diseñado siguiendo los **principios SOLID**:
+El framework está diseñado intentando aplicar los **principios SOLID**. No creo necesario explicar aquí esos principios ya que son del dominio público. Simplemente reflejo las premisas básicas:
 
 - **Single Responsibility**: Cada clase tiene una responsabilidad única
 - **Open/Closed**: Extensible vía hooks virtuales
@@ -69,120 +41,17 @@ El framework está diseñado siguiendo los **principios SOLID**:
 ┌─────────────────────────────────────┐
 │   UI Layer (Forms/API Endpoints)    │
 ├─────────────────────────────────────┤
-│   Managers (Orchestration)          │
+│   Managers (Orquestador)            │
 ├─────────────────────────────────────┤
-│   DataSources (Mapping/Binding)     │
+│   DataSources (Mapeo/Enlazado)      │
 ├─────────────────────────────────────┤
-│   Entities (Business Logic)         │
+│   Entities                          │
 ├─────────────────────────────────────┤
-│   Repositories (Persistence)        │
+│   Repositories (Persistencia)       │
 ├─────────────────────────────────────┤
 │   DB Components (I/O)               │
 └─────────────────────────────────────┘
 ```
-
-### Componentes Principales
-
-**Entidades (`TEntity`)**
-- Modelo de dominio puro
-- Validaciones de negocio
-- Estado y metadata
-- Sin dependencias de persistencia
-
-**Serializers**
-- `TEntitySerializer`: Construcción type-safe de JSON
-- `TEntityDeserializer`: Lectura type-safe de JSON
-- Desacoplados de las entidades (DIP)
-
-**Dual-Path Persistence**
-- **Camino directo**: DB ↔ Entity (LoadFromQuery/SaveToQuery)
-  - Mayor rendimiento para CRUD intensivo
-  - Acceso directo a campos SQL
-  - Ideal para aplicaciones desktop
-- **Camino JSON**: Entity ↔ JSON ↔ API/Storage
-  - Serialización para web/REST APIs
-  - Almacenamiento en formato portable
-  - Compatibilidad con servicios externos
-
-**DataSources**
-- Mapeo entre DB y entidades
-- Lookup values y relaciones
-- Implementan ambos caminos (directo + JSON)
-
-## 🚀 Ejemplo de Uso
-
-```pascal
-uses
-  entity_cl, entity_serializers;
-
-type
-  TPersona = class(TEntity)
-  private
-    FNombre: string;
-    FEdad: Integer;
-  protected
-    procedure DoSerializeFields(ASerializer: TEntitySerializer); override;
-    procedure DoDeserializeFields(ADeserializer: TEntityDeserializer); override;
-  published
-    property Nombre: string read FNombre write FNombre;
-    property Edad: Integer read FEdad write FEdad;
-  end;
-
-procedure TPersona.DoSerializeFields(ASerializer: TEntitySerializer);
-begin
-  inherited;
-  ASerializer.AddField('nombre', FNombre);
-  ASerializer.AddField('edad', FEdad);
-end;
-
-procedure TPersona.DoDeserializeFields(ADeserializer: TEntityDeserializer);
-begin
-  inherited;
-  FNombre := ADeserializer.GetString('nombre', '');
-  FEdad := ADeserializer.GetInteger('edad', 0);
-end;
-
-// Uso
-var
-  persona: TPersona;
-  json: string;
-begin
-  persona := TPersona.Create;
-  try
-    persona.BeginLoad; // Evita marcar como modificado durante carga
-    persona.Nombre := 'Juan';
-    persona.Edad := 30;
-    persona.EndLoad;
-    
-    // Serializar a JSON
-    json := persona.ToJSONString;
-    WriteLn(json);
-    
-    // Validar
-    if persona.Validate then
-      WriteLn('Entidad válida')
-    else
-      WriteLn('Errores: ', persona.ValidationMessages.Count);
-  finally
-    persona.Free;
-  end;
-end;
-```
-
-## 🧪 Tests
-
-El proyecto incluye tests unitarios con FPCUnit:
-
-```bash
-# Compilar y ejecutar tests
-fpc fw_unittests.lpr
-./fw_unittests
-```
-
-Tests actuales:
-- Metadata (Version, CreatedBy, ModifiedBy)
-- BeginLoad/EndLoad (sin efectos secundarios)
-- Serialización JSON (ida y vuelta completa)
 
 ## 📦 Requisitos
 
@@ -205,16 +74,7 @@ MIT License - Ver archivo [LICENSE](LICENSE)
 
 ## 👤 Autor
 
-Proyecto desarrollado como framework de uso personal y aprendizaje de buenas prácticas de diseño OOP.
-
-## 📝 Changelog
-
-### v0.1.0-alpha (2025-10-25)
-- Implementación inicial del framework
-- Sistema base de entidades con estado y metadata
-- Serialización JSON desacoplada con helpers
-- Tests unitarios con FPCUnit
-- Documentación completa
+Proyecto desarrollado por Janasoft como framework de uso personal y aprendizaje de buenas prácticas de diseño OOP.
 
 ---
 
